@@ -39,7 +39,7 @@
 # Date: September 2025
 # -----------------------------------------------------------------------------
 
-set -eo pipefail
+set -euo pipefail
 
 # Source reusable functions
 # shellcheck source=functions.sh
