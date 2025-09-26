@@ -31,6 +31,9 @@ This repository, `shell-zoo`, is a collection of bash scripts for various comman
   - Validate that any new dependencies are installed and available in the script, and provide clear error messages if they are not.
 - **Bash Version**:
   - The minimum required Bash version for scripts in this repository is 5.1.
+- **Error Handling**:
+  - Scripts should handle errors gracefully, providing meaningful error messages and exiting with appropriate status codes.
+  - Always use `set -euo pipefail` at the beginning of scripts to ensure robust error handling.
 
 ## 3. Directory and File Structure
 
