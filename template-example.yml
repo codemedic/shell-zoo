@@ -1,0 +1,14 @@
+fields:
+  # Change Risk: This is an option field. Valid options might be "Low", "Medium", "High".
+  customfield_10006:
+    value: "Low"
+
+  # Dependencies: This is a text field for noting dependencies.
+  # Let's try the next ID: customfield_11086
+  customfield_11086: "No known dependencies."
+
+  # Product Areas Impacted: A text field to describe the areas of the product that are affected.
+  customfield_11096: "None other than this project / feature."
+
+  # Testing notes: A text field for any notes related to testing.
+  customfield_11084: "Standard regression testing would suffice."

@@ -21,3 +21,36 @@ function validate_dependencies() {
         exit 1
     fi
 }
+
+# --- Logging Functions ---
+# Usage:
+#   export LOG_LEVEL=DEBUG
+#   log_debug "This is a debug message"
+#
+# LOG_LEVEL can be one of: DEBUG, VERBOSE, INFO, ERROR
+
+# Color constants
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[0;33m'
+readonly RED='\033[0;31m'
+readonly NC='\033[0m' # No Color
+
+function log_debug() {
+    if [[ "${LOG_LEVEL:-INFO}" == "DEBUG" ]]; then
+        echo -e "${GREEN}[DEBUG]${NC} $1" >&2
+    fi
+}
+
+function log_verbose() {
+    if [[ "${LOG_LEVEL:-INFO}" == "DEBUG" || "${LOG_LEVEL:-INFO}" == "VERBOSE" ]]; then
+        echo -e "${YELLOW}[VERBOSE]${NC} $1" >&2
+    fi
+}
+
+function log_info() {
+    echo "$1"
+}
+
+function log_error() {
+    echo -e "${RED}[ERROR]${NC} $1" >&2
+}
