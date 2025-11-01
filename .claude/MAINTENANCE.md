@@ -11,7 +11,7 @@ This document provides guidelines for maintaining consistency across scripts and
 
 ## 📁 Project Structure
 
-```
+```text
 shell-zoo/
 ├── README.md                    # Main project documentation
 ├── functions.sh                 # General-purpose shared functions
@@ -32,12 +32,14 @@ shell-zoo/
 ### 1. Modifying Shared Functions (`functions.sh` or `functions-jira.sh`)
 
 **Always update:**
+
 - [ ] The function implementation in the library file
 - [ ] The corresponding documentation in `docs/functions-jira.md` (for Jira functions)
 - [ ] Any scripts that call the modified function (if signature changed)
 - [ ] Examples in the documentation showing the new usage
 
 **Checklist:**
+
 1. Modify the function in the library file
 2. Update the function reference section in docs
 3. Update code examples that use the function
@@ -47,12 +49,14 @@ shell-zoo/
 ### 2. Modifying Scripts (`jira-create.sh` or `jira-soother.sh`)
 
 **Always update:**
+
 - [ ] The script file itself
 - [ ] The script's documentation file in `docs/`
 - [ ] The `--help` output in the script (usage() function)
 - [ ] `README.md` if the change affects the script's description
 
 **Checklist:**
+
 1. Make code changes in the script
 2. Update the `usage()` function if command-line interface changed
 3. Update the corresponding doc file in `docs/`
@@ -63,6 +67,7 @@ shell-zoo/
 ### 3. Adding New Subcommands
 
 **Files to update:**
+
 1. **Script file** (`jira-create.sh` or `jira-soother.sh`):
    - Add new function for the subcommand
    - Add case in main() function
@@ -78,6 +83,7 @@ shell-zoo/
    - Update feature description if needed
 
 **Template for new subcommand:**
+
 ```bash
 # In script:
 subcommand_name() {
@@ -210,6 +216,7 @@ Both `jira-create.sh` and `jira-soother.sh` must maintain:
 Before committing changes:
 
 ### Script Testing
+
 - [ ] Run `shellcheck` on all modified scripts
 - [ ] Test `--help` without environment variables (should work)
 - [ ] Test with `--debug` to verify logging
@@ -219,12 +226,14 @@ Before committing changes:
 - [ ] Test with missing required arguments (should show usage)
 
 ### Documentation Testing
+
 - [ ] Verify all links work (internal references)
 - [ ] Verify all code examples have correct syntax
 - [ ] Check that examples match current script behavior
 - [ ] Verify help output matches documented options
 
 ### Integration Testing
+
 - [ ] Test scripts with actual Jira instance (if available)
 - [ ] Test error scenarios (invalid credentials, missing fields)
 - [ ] Verify error messages are user-friendly
@@ -232,6 +241,7 @@ Before committing changes:
 ## 🔍 Common Patterns
 
 ### Error Handling Pattern
+
 ```bash
 # In scripts - let common functions handle errors
 if ! jira_api_get "/rest/api/2/field"; then
@@ -243,6 +253,7 @@ echo "${jira_response_body}" | jq '.[]'
 ```
 
 ### Validation Pattern
+
 ```bash
 # In scripts
 if ! validate_yaml_file "${yaml_file}"; then
@@ -254,6 +265,7 @@ yaml_content=$(yq -o=json '.' "${yaml_file}")
 ```
 
 ### Option Parsing Pattern
+
 ```bash
 # In subcommand functions
 local option_value=""
@@ -284,6 +296,7 @@ done
 When adding examples to documentation, follow this structure:
 
 **Template:**
+
 - Section heading: `### Example: Description`
 - Brief explanation paragraph
 - Code block with command (use bash syntax highlighting)
@@ -291,7 +304,8 @@ When adding examples to documentation, follow this structure:
 - Explanation bullet points
 
 **Example structure:**
-```
+
+```markdown
 ### Example: Creating a Simple Task
 
 This example shows how to create a basic task ticket.
@@ -312,13 +326,15 @@ Explanation:
 When adding multi-step workflows, follow this structure:
 
 **Template:**
+
 - Section heading: `### Workflow N: Workflow Name`
 - Brief description of when to use this workflow
 - Code block with all steps (using bash comments)
 - Explanation of the workflow's usefulness
 
 **Example structure:**
-```
+
+```markdown
 ### Workflow 1: Create Ticket from Template
 
 Use this when you need to create tickets with custom fields.
@@ -450,7 +466,7 @@ When the user asks to summarize changes (or at the end of a session), provide:
 
 **Example Summary Template:**
 
-```
+```markdown
 ## Session Summary
 
 ### Changes Made
