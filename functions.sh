@@ -30,27 +30,62 @@ function validate_dependencies() {
 # LOG_LEVEL can be one of: DEBUG, VERBOSE, INFO, ERROR
 
 # Color constants
+readonly DARK_GRAY='\033[1;30m'
 readonly GREEN='\033[0;32m'
 readonly YELLOW='\033[0;33m'
 readonly RED='\033[0;31m'
+readonly CYAN='\033[0;36m'
 readonly NC='\033[0m' # No Color
 
+# Logging levels
+declare -A LOG_LEVELS=(
+    ["DEBUG"]=0
+    ["VERBOSE"]=1
+    ["INFO"]=2
+    ["ERROR"]=3
+)
+# Logging level threshold
+LOG_LEVEL="${LOG_LEVEL:-INFO}"
+# Logging colours for each level
+declare -A LOG_COLORS=(
+    ["DEBUG"]="${DARK_GRAY}"
+    ["VERBOSE"]="${CYAN}"
+    ["INFO"]="${GREEN}"
+    ["WARNING"]="${YELLOW}"
+    ["ERROR"]="${RED}"
+)
+
 function log_debug() {
-    if [[ "${LOG_LEVEL:-INFO}" == "DEBUG" ]]; then
-        echo -e "${GREEN}[DEBUG]${NC} $1" >&2
+    local int_level=${LOG_LEVELS[${LOG_LEVEL}]:-2}
+    if [[ ${int_level} -le ${LOG_LEVELS["DEBUG"]} ]]; then
+        echo -e "${LOG_COLORS["DEBUG"]}[DEBUG]${NC} $1" >&2
     fi
 }
 
 function log_verbose() {
-    if [[ "${LOG_LEVEL:-INFO}" == "DEBUG" || "${LOG_LEVEL:-INFO}" == "VERBOSE" ]]; then
-        echo -e "${YELLOW}[VERBOSE]${NC} $1" >&2
+    local int_level=${LOG_LEVELS[${LOG_LEVEL}]:-2}
+    if [[ ${int_level} -le ${LOG_LEVELS["VERBOSE"]} ]]; then
+        echo -e "${LOG_COLORS["VERBOSE"]}[VERBOSE]${NC} $1" >&2
     fi
 }
 
 function log_info() {
-    echo "$1"
+    local int_level=${LOG_LEVELS[${LOG_LEVEL}]:-2}
+    if [[ ${int_level} -le ${LOG_LEVELS["INFO"]} ]]; then
+        echo -e "${LOG_COLORS["INFO"]}[INFO]${NC} $1" >&2
+    fi
+}
+
+function log_warning() {
+    local int_level=${LOG_LEVELS[${LOG_LEVEL}]:-2}
+    if [[ ${int_level} -le ${LOG_LEVELS["WARNING"]} ]]; then
+        echo -e "${LOG_COLORS["WARNING"]}[WARNING]${NC} $1" >&2
+    fi
 }
 
 function log_error() {
-    echo -e "${RED}[ERROR]${NC} $1" >&2
+    local int_level=${LOG_LEVELS[${LOG_LEVEL}]:-2}
+    if [[ ${int_level} -le ${LOG_LEVELS["ERROR"]} ]]; then
+        echo -e "${LOG_COLORS["ERROR"]}[ERROR]${NC} $1" >&2
+    fi
 }

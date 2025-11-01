@@ -1,15 +1,18 @@
 # Jira Soother
 
-This project provides a Bash script, `jira-soother.sh`, to programmatically apply project-specific templates to a Jira Cloud ticket. It is designed to counteract useless default values by letting you define and apply a set of common fields for your project or team.
+A Bash script to programmatically apply project-specific templates to Jira Cloud tickets. It is designed to counteract useless default values by letting you define and apply a set of common fields for your project or team.
 
 ## Solution Overview
 
-The solution consists of two main components:
+The solution consists of the following components:
 
-1. **`jira-soother.sh`**: A script that connects to your Jira instance and can either:
-   - **`find-fields`**: Find Jira fields, with optional filtering. You can filter fields by name and automatically add them to a YAML template file. This makes it easy to discover fields and build your configuration.
-   - **`apply-template`**: Update a ticket. It takes two arguments: the Jira ticket key (e.g., `PROJECT-123`) and the path to a YAML configuration file. It sends a `PUT` request to the Jira API to update the ticket.
-2. **`template-example.yml`**: A YAML file that serves as a template for the update. You edit this file to define _only_ the fields you wish to change and the values you want to set. This separates the update logic from the data itself, making it easy to manage different templates.
+1. **`jira-soother.sh`**: A script that connects to your Jira instance and can:
+   - **`find-fields`**: Discover Jira fields with optional filtering. You can filter fields by name and automatically add them to a YAML template file. This makes it easy to discover fields and build your configuration.
+   - **`apply-template`**: Update a ticket. It takes the Jira ticket key (e.g., `PROJECT-123`) and the path to a YAML configuration file, then sends a `PUT` request to the Jira API to update the ticket.
+
+2. **`template-example.yml`**: A YAML file that serves as a template for updates. You edit this file to define _only_ the fields you wish to change and the values you want to set. This separates the update logic from the data itself, making it easy to manage different templates.
+
+3. **Shared Libraries**: The script uses common functions from `functions.sh` (logging, validation) and `functions-jira.sh` (Jira API operations, authentication).
 
 ## How to Use
 
@@ -17,6 +20,21 @@ For detailed usage instructions, you can always run the script with the `--help`
 
 ```bash
 ./jira-soother.sh --help
+```
+
+### Global Options
+
+The script supports the following global options (place before the subcommand):
+
+- `--help`: Show help message and exit
+- `--log-level <LEVEL>`: Set log level (DEBUG, VERBOSE, INFO, ERROR). Default: INFO
+- `--debug`: Shortcut for `--log-level DEBUG` (most verbose output)
+- `--verbose`: Shortcut for `--log-level VERBOSE` (detailed output)
+- `--quiet`: Shortcut for `--log-level ERROR` (only show errors)
+
+Example:
+```bash
+jira_run ./jira-soother.sh --debug find-fields --filter "Story Points"
 ```
 
 ### Step 1: Set Up Environment Variables

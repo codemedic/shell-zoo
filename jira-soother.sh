@@ -5,42 +5,37 @@ set -euo pipefail
 # A script to interact with Jira for finding fields and applying templates to tickets.
 #
 # Usage:
-#   ./jira-soother.sh find-fields [--filter <string>] [--add-to-template <yaml-file>]
-#   ./jira-soother.sh apply-template <TICKET_KEY> <YAML_FILE>
+#   ./jira-soother.sh [--debug|--verbose|--quiet] <subcommand> [options]
+#
+# Subcommands:
+#   find-fields [--filter <string>] [--add-to-template <yaml-file>]
+#   apply-template <TICKET_KEY> <YAML_FILE>
 # --------------------------------------------------
 
 # Source the reusable functions
 # shellcheck source=functions.sh
 source "$(dirname "$0")/functions.sh"
 
-# --- Configuration ---
-# Ensure Jira credentials are present in environment variables. If the variables are not present, bail out.
-: "${jira_base_url:?Environment variable jira_base_url not set.}"
-: "${jira_user:?Environment variable jira_user not set.}"
-: "${jira_password:?Environment variable jira_password not set.}"
-
-# --- Helper Functions ---
-
-# Create Basic Auth header
-get_auth_header() {
-    local auth_string
-    auth_string=$(echo -n "${jira_user}:${jira_password}" | base64)
-    echo "Authorization: Basic ${auth_string}"
-}
+# shellcheck source=functions-jira.sh
+source "$(dirname "$0")/functions-jira.sh"
 
 usage() {
     cat <<EOF
 A script to interact with Jira for finding fields and applying templates to tickets.
 
 Usage:
-  ./jira-soother.sh <subcommand> [options]
+  ./jira-soother.sh [global-options] <subcommand> [options]
+
+Global Options:
+  --help                Show this help message.
+  --log-level <LEVEL>   Set log level: DEBUG, VERBOSE, INFO, ERROR (default: INFO).
+  --debug               Shortcut for --log-level DEBUG (most verbose).
+  --verbose             Shortcut for --log-level VERBOSE.
+  --quiet               Shortcut for --log-level ERROR (only errors).
 
 Subcommands:
   find-fields       Find Jira fields, with optional filtering.
   apply-template    Apply a YAML template to a Jira ticket.
-
-Options:
-  --help            Show this help message.
 
 'find-fields' Subcommand Usage:
   ./jira-soother.sh find-fields [--filter <string>] [--add-to-template <yaml-file>]
@@ -108,32 +103,12 @@ find_fields() {
 
     log_verbose "Fetching fields from ${jira_base_url}..."
 
-    local auth_header
-    auth_header=$(get_auth_header)
-    log_debug "Auth header created."
-
-    local api_endpoint="${jira_base_url}/rest/api/2/field"
-    log_debug "API endpoint: ${api_endpoint}"
-
-    # Make the API call
-    local response
-    response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -H "${auth_header}" "${api_endpoint}")
-    log_debug "Curl response received."
-
-    # Separate HTTP status from response body
-    local http_status
-    http_status=$(echo "${response}" | grep "HTTP_STATUS:" | cut -d: -f2)
-    local body
-    body=$(echo "${response}" | sed '$d')
-    log_debug "HTTP status: ${http_status}"
-
-    # Check for successful response
-    if [ "$http_status" -ne 200 ]; then
-        log_error "Failed to fetch fields from Jira. HTTP Status: ${http_status}"
-        log_error "Response Body:"
-        log_error "${body}" | jq .
+    # Make the API call using common function
+    if ! jira_api_get "/rest/api/2/field"; then
         exit 1
     fi
+
+    local body="${jira_response_body}"
 
     if [ -z "${body}" ]; then
         log_error "Received empty response from Jira."
@@ -250,9 +225,8 @@ apply_template() {
     local yaml_file="$2"
     log_info "Attempting to apply template to ticket ${ticket_key} with data from ${yaml_file}."
 
-    # Check if the YAML file exists
-    if [ ! -f "$yaml_file" ]; then
-        log_error "YAML file not found at: ${yaml_file}"
+    # Validate YAML file using common function
+    if ! validate_yaml_file "${yaml_file}"; then
         exit 1
     fi
 
@@ -261,62 +235,80 @@ apply_template() {
     json_payload=$(yq -o=json '.' "$yaml_file")
     log_debug "Read and converted YAML payload from file."
 
-    # Validate if the file content is valid JSON
-    if ! echo "${json_payload}" | jq . > /dev/null 2>&1; then
-        log_error "The file '${yaml_file}' does not contain valid YAML/JSON."
-        exit 1
-    fi
-    log_debug "JSON payload is valid."
-
-    local auth_header
-    auth_header=$(get_auth_header)
-    log_debug "Auth header created."
-
-    local api_endpoint="${jira_base_url}/rest/api/2/issue/${ticket_key}"
-    log_debug "API endpoint: ${api_endpoint}"
-
     log_verbose "Updating ticket: ${ticket_key}"
     log_verbose "Using config file: ${yaml_file}"
-    log_debug "Payload: ${json_payload}"
 
-    # Make the API call
-    local response
-    response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
-         -X PUT \
-         -H "${auth_header}" \
-         -H "Content-Type: application/json" \
-         -H "Accept: application/json" \
-         --data "${json_payload}" \
-         "${api_endpoint}")
-    log_debug "Curl response received."
-
-    # Separate HTTP status from response body
-    local http_status
-    http_status=$(echo "${response}" | grep "HTTP_STATUS:" | cut -d: -f2)
-    local body
-    body=$(echo "${response}" | sed '$d') # Remove last line (the status)
-    log_debug "HTTP status: ${http_status}"
-
-    # Check the result
-    if [ "$http_status" -eq 204 ]; then
-        log_info "Successfully updated ticket ${ticket_key}!"
-        log_info "View it here: ${jira_base_url}/browse/${ticket_key}"
-    else
-        log_error "Error updating ticket. Status: ${http_status}"
-        log_error "Response Body:"
-        log_error "${body}" | jq . # Pretty-print the error JSON
+    # Make the API call using common function
+    if ! jira_api_put "/rest/api/2/issue/${ticket_key}" "${json_payload}"; then
+        exit 1
     fi
+
+    log_info "Successfully updated ticket ${ticket_key}!"
+    log_info "View it here: ${jira_base_url}/browse/${ticket_key}"
 }
 
 # --- Main Logic ---
 main() {
-    # Validate dependencies
-    validate_dependencies "jq" "curl" "base64" "yq"
+    # Set default log level
+    export LOG_LEVEL="${LOG_LEVEL:-INFO}"
 
-    if [ "$#" -eq 0 ] || [[ " $* " == *" --help "* ]]; then
+    # Parse global options first (check for help before validating environment)
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            --help)
+                usage
+                exit 0
+                ;;
+            --log-level)
+                if [ -z "$2" ]; then
+                    log_error "Error: --log-level requires a value (DEBUG, VERBOSE, INFO, ERROR)."
+                    exit 1
+                fi
+                # Validate log level
+                case "$2" in
+                    DEBUG|VERBOSE|INFO|ERROR)
+                        export LOG_LEVEL="$2"
+                        ;;
+                    *)
+                        log_error "Error: Invalid log level '$2'. Must be one of: DEBUG, VERBOSE, INFO, ERROR."
+                        exit 1
+                        ;;
+                esac
+                shift 2
+                ;;
+            --debug)
+                export LOG_LEVEL="DEBUG"
+                shift
+                ;;
+            --verbose)
+                export LOG_LEVEL="VERBOSE"
+                shift
+                ;;
+            --quiet)
+                export LOG_LEVEL="ERROR"
+                shift
+                ;;
+            -*)
+                # Unknown option, might be for subcommand
+                break
+                ;;
+            *)
+                # Not an option, must be the subcommand
+                break
+                ;;
+        esac
+    done
+
+    if [ "$#" -eq 0 ]; then
         usage
         exit 0
     fi
+
+    # Validate Jira environment variables (after help check)
+    validate_jira_env
+
+    # Validate dependencies
+    validate_dependencies "jq" "curl" "base64" "yq"
 
     local subcommand="$1"
     shift
