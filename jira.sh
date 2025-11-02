@@ -1079,9 +1079,20 @@ cmd_generate_template() {
 
         # Write the field to YAML with comment
         if [ "${is_updating}" = "true" ]; then
+            # Validate field_key format to prevent injection
+            if [[ ! "${field_key}" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+                log_error "Invalid field key format: ${field_key}"
+                log_error "Field keys must contain only alphanumeric characters, hyphens, and underscores."
+                continue
+            fi
+
             # Use yq to add field to existing YAML
             log_debug "Adding field '${field_key}' to template..."
-            if ! env DEFAULT_VALUE="${default_value}" yq -i ".fields.${field_key} line_comment=\"${comment}\" | .fields.${field_key} = env(DEFAULT_VALUE)" "${output_file}"; then
+            # Pass values via environment variables for safety
+            # Set value first, then add comment
+            if ! DEFAULT_VALUE="${default_value}" FIELD_COMMENT="${comment}" \
+                yq -i ".fields[\"${field_key}\"]=env(DEFAULT_VALUE) | .fields[\"${field_key}\"] line_comment=env(FIELD_COMMENT)" \
+                "${output_file}"; then
                 log_error "Failed to add field '${field_key}' to template."
             else
                 log_verbose "Added field '${field_key}' (${field_name}) to template."
