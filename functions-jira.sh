@@ -2,6 +2,151 @@
 
 # Reusable Jira-specific functions for shell scripts
 
+# --- Interactive Template Support ---
+
+# Check if a value is an interactive placeholder
+# Args: $1 - value to check
+# Returns: 0 if it's a placeholder, 1 otherwise
+is_interactive_placeholder() {
+    local value="$1"
+    # Match patterns like {{PROMPT: text}}, {{INPUT: text}}, {{PROMPT_MULTI: text}}, or {{INPUT_MULTI: text}}
+    [[ "${value}" =~ ^\{\{(PROMPT|INPUT|PROMPT_MULTI|INPUT_MULTI):[[:space:]]*(.+)\}\}$ ]]
+}
+
+# Extract prompt text from placeholder
+# Args: $1 - placeholder value (e.g., "{{PROMPT: Enter summary}}")
+# Returns: The prompt text
+extract_prompt_text() {
+    local value="$1"
+    if [[ "${value}" =~ ^\{\{(PROMPT|INPUT|PROMPT_MULTI|INPUT_MULTI):[[:space:]]*(.+)\}\}$ ]]; then
+        echo "${BASH_REMATCH[2]}"
+    fi
+}
+
+# Check if placeholder is multi-line type
+# Args: $1 - placeholder value
+# Returns: 0 if multi-line, 1 otherwise
+is_multiline_placeholder() {
+    local value="$1"
+    [[ "${value}" =~ ^\{\{(PROMPT_MULTI|INPUT_MULTI):[[:space:]]*.+\}\}$ ]]
+}
+
+# Prompt user for input interactively
+# Args: $1 - field name, $2 - prompt text, $3 - is_multiline (true/false)
+# Returns: User input
+prompt_user_input() {
+    local field_name="$1"
+    local prompt_text="$2"
+    local is_multiline="${3:-false}"
+
+    # Display the prompt text as the main label (it's the human-readable field name/question)
+    log_info "${prompt_text}"
+    log_verbose "(Field ID: ${field_name})"
+
+    local user_input
+
+    if [ "${is_multiline}" = "true" ]; then
+        # Multi-line input mode
+        echo "  [Enter multi-line text. Type 'END' on a new line when finished]" >&2
+        echo "" >&2
+
+        local lines=()
+        local line
+        while IFS= read -r line < /dev/tty; do
+            # Check if user entered END to finish
+            if [ "${line}" = "END" ]; then
+                break
+            fi
+            lines+=("${line}")
+        done
+
+        # Join lines with actual newlines
+        user_input=$(printf "%s\n" "${lines[@]}" | sed '$d' || printf "%s\n" "${lines[@]}")
+
+        # Remove trailing newline if lines array is not empty
+        if [ "${#lines[@]}" -gt 0 ]; then
+            # Join all lines with newline, but remove the last extra newline
+            user_input=$(IFS=$'\n'; echo "${lines[*]}")
+        fi
+    else
+        # Single-line input mode
+        echo -n "  > " >&2
+        read -r user_input < /dev/tty
+    fi
+
+    echo "${user_input}"
+}
+
+# Process JSON and replace interactive placeholders with user input
+# Args: $1 - JSON string, $2 - enable interactive mode (true/false)
+# Returns: Modified JSON with placeholders replaced
+process_interactive_template() {
+    local json="$1"
+    local interactive="${2:-true}"
+
+    if [ "${interactive}" != "true" ]; then
+        # Check for any placeholders and error if found
+        if echo "${json}" | jq -e '.. | select(type == "string" and test("^\\{\\{(PROMPT|INPUT|PROMPT_MULTI|INPUT_MULTI):"))' > /dev/null 2>&1; then
+            log_error "Template contains interactive placeholders but interactive mode is disabled."
+            log_error "Use --interactive flag or remove placeholders from template."
+            return 1
+        fi
+        echo "${json}"
+        return 0
+    fi
+
+    log_info "Processing interactive template..."
+    echo "" >&2
+
+    # Extract all string values with their paths
+    local paths_and_values
+    paths_and_values=$(echo "${json}" | jq -r 'paths(type == "string") as $p | "\($p | join("."))\t\(getpath($p))"')
+
+    local modified_json="${json}"
+
+    while IFS=$'\t' read -r path value; do
+        if is_interactive_placeholder "${value}"; then
+            local prompt_text
+            prompt_text=$(extract_prompt_text "${value}")
+
+            # Extract field name from path (last component)
+            local field_name
+            field_name=$(echo "${path}" | awk -F'.' '{print $NF}')
+
+            # Check if this is a multi-line placeholder
+            local is_multiline="false"
+            if is_multiline_placeholder "${value}"; then
+                is_multiline="true"
+            fi
+
+            # Get user input
+            local user_input
+            user_input=$(prompt_user_input "${field_name}" "${prompt_text}" "${is_multiline}")
+
+            # Escape the input for JSON
+            local escaped_input
+            escaped_input=$(echo -n "${user_input}" | jq -R -s '.')
+
+            # Replace in JSON using jq
+            # Convert path like "fields.summary" to jq path like .fields.summary
+            local jq_path
+            jq_path=".${path}"
+
+            # Update the JSON
+            local updated_json
+            if ! updated_json=$(echo "${modified_json}" | jq "${jq_path} = ${escaped_input}"); then
+                log_error "Failed to update field '${field_name}' in template."
+                return 1
+            fi
+            modified_json="${updated_json}"
+        fi
+    done <<< "${paths_and_values}"
+
+    echo "" >&2
+    log_info "Interactive input complete."
+    echo "${modified_json}"
+}
+
 # --- Configuration Validation ---
 
 # Validate that required Jira environment variables are set

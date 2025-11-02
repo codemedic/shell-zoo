@@ -13,6 +13,7 @@ This library is used by both `jira-soother.sh` and `jira-create.sh` to eliminate
 - **Response Parsing**: Consistent HTTP status and body extraction
 - **Validation Helpers**: YAML file validation and environment variable checking
 - **Field Utilities**: Functions for generating field defaults and comments
+- **Interactive Templates**: Support for placeholder-based interactive field input
 
 ## Usage
 
@@ -42,6 +43,127 @@ The library expects the following environment variables to be set:
 - `jira_password`: Your Jira API token
 
 ## Function Reference
+
+### Interactive Template Support
+
+#### `is_interactive_placeholder(value)`
+
+Check if a value is an interactive placeholder.
+
+**Parameters:**
+- `$1`: Value to check
+
+**Returns:**
+- Exit code 0 if it's a placeholder (matches `{{PROMPT: ...}}` or `{{INPUT: ...}}`)
+- Exit code 1 otherwise
+
+**Usage:**
+```bash
+if is_interactive_placeholder "{{PROMPT: Enter summary}}"; then
+    echo "This is a placeholder"
+fi
+```
+
+#### `extract_prompt_text(value)`
+
+Extract prompt text from a placeholder.
+
+**Parameters:**
+- `$1`: Placeholder value (e.g., `"{{PROMPT: Enter summary}}"`)
+
+**Returns:** The prompt text (e.g., `"Enter summary"`)
+
+**Usage:**
+```bash
+prompt_text=$(extract_prompt_text "{{PROMPT: Enter summary}}")
+# Output: "Enter summary"
+```
+
+#### `prompt_user_input(field_name, prompt_text, field_type)`
+
+Prompt user for input interactively.
+
+**Parameters:**
+- `$1`: Field name (for display)
+- `$2`: Prompt text (question to ask)
+- `$3`: Field type (optional, default: "string"). Can be "array", "number", or other types
+
+**Returns:** User input from stdin
+
+**Usage:**
+```bash
+user_input=$(prompt_user_input "summary" "Enter task summary" "string")
+# Displays: [INFO] Field: summary
+#            Enter task summary: [waits for input]
+```
+
+#### `process_interactive_template(json, interactive)`
+
+Process JSON and replace interactive placeholders with user input.
+
+**Parameters:**
+- `$1`: JSON string (typically from YAML template converted to JSON)
+- `$2`: Enable interactive mode (`true` or `false`)
+
+**Returns:**
+- Modified JSON with placeholders replaced by user input
+- Exit code 0 on success, 1 if placeholders found in non-interactive mode
+
+**Supported Placeholder Types:**
+- `{{PROMPT: text}}` - Single-line input prompt
+- `{{INPUT: text}}` - Single-line input prompt (alias)
+- `{{PROMPT_MULTI: text}}` - Multi-line input prompt (type 'END' to finish)
+- `{{INPUT_MULTI: text}}` - Multi-line input prompt (alias)
+
+**Behavior:**
+- If `interactive="true"`: Prompts user for each placeholder found
+  - Single-line placeholders: reads one line of input
+  - Multi-line placeholders: reads multiple lines until user types 'END'
+- If `interactive="false"`: Validates no placeholders exist, errors if found
+- Automatically handles JSON escaping of user input
+
+**Usage:**
+```bash
+# Interactive mode - single-line
+json='{"fields": {"summary": "{{PROMPT: Enter summary}}"}}'
+if processed=$(process_interactive_template "${json}" "true"); then
+    echo "Processed: ${processed}"
+fi
+
+# Interactive mode - multi-line
+json='{"fields": {"description": "{{PROMPT_MULTI: Enter description}}"}}'
+if processed=$(process_interactive_template "${json}" "true"); then
+    # User will be prompted to enter multi-line text, ending with 'END'
+    echo "Processed: ${processed}"
+fi
+
+# Non-interactive mode (validates no placeholders)
+if processed=$(process_interactive_template "${json}" "false"); then
+    echo "No placeholders found"
+else
+    echo "Error: Template contains placeholders but interactive mode disabled"
+fi
+```
+
+**Example Flow:**
+
+```bash
+# Input JSON with placeholders
+json='{"fields": {"summary": "{{PROMPT: Enter summary}}", "description": "{{PROMPT_MULTI: Enter description}}"}}'
+
+# Process interactively
+processed=$(process_interactive_template "${json}" "true")
+
+# User sees:
+#   [INFO] Processing interactive template...
+#
+#   [INFO] Field: summary
+#     Enter summary: My new task
+#
+#   [INFO] Interactive input complete.
+
+# Output: {"fields": {"summary": "My new task", "description": "Static text"}}
+```
 
 ### Configuration & Validation
 

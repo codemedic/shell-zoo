@@ -5,11 +5,9 @@ A menagerie of wild and wonderful (bash) scripts for everyday tasks, automation,
 
 ### Jira Automation
 
-* **[jira-create.sh](docs/jira-create.md)** - Create Jira tickets with validation, metadata caching, and template generation. Supports minimal ticket creation, template-based workflows, field discovery, and automatic validation of required fields.
+* **[jira.sh](docs/jira.md)** - Unified Jira automation tool for creating and managing tickets. Supports interactive templates, metadata caching, field discovery, and template generation. Provides seven commands: `create`, `create-from-template`, `update`, `list-fields`, `show-required`, `generate-template`, and `fetch-metadata`.
 
-* **[jira-soother.sh](docs/jira-soother.md)** - Update existing Jira tickets with templates to counteract useless default values. Discover fields, build templates, and apply them consistently across tickets.
-
-* **[functions-jira.sh](docs/functions-jira.md)** - Shared library providing reusable Jira API functions, authentication, validation, and error handling for all Jira scripts.
+* **[functions-jira.sh](docs/functions-jira.md)** - Shared library providing reusable Jira API functions, authentication, interactive template processing, validation, and error handling for all Jira scripts.
 
 ### Utilities
 
