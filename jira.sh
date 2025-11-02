@@ -65,20 +65,27 @@ cache_metadata() {
     local cache_file
     cache_file=$(get_cache_file "${project}" "${issue_type}")
 
-    # Create cache directory if it doesn't exist
+    # Create cache directory if it doesn't exist with restricted permissions
     if [ ! -d "${CACHE_DIR}" ]; then
-        if ! mkdir -p "${CACHE_DIR}"; then
+        if ! mkdir -p -m 700 "${CACHE_DIR}"; then
             log_error "Failed to create cache directory: ${CACHE_DIR}"
             return 1
         fi
         log_debug "Created cache directory: ${CACHE_DIR}"
+    else
+        # Ensure existing directory has correct permissions (owner only)
+        chmod 700 "${CACHE_DIR}" 2>/dev/null || true
     fi
 
-    # Write metadata to cache file
-    if ! echo "${metadata}" > "${cache_file}"; then
+    # Write metadata to cache file with restricted permissions (owner read/write only)
+    # Use umask 077 to ensure file is created with 600 permissions
+    if ! (umask 077 && echo "${metadata}" > "${cache_file}"); then
         log_error "Failed to write metadata to cache file: ${cache_file}"
         return 1
     fi
+
+    # Explicitly set permissions as backup (in case umask didn't work)
+    chmod 600 "${cache_file}" 2>/dev/null || true
 
     log_info "Metadata cached to: ${cache_file}"
     return 0
