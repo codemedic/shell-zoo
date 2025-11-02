@@ -4,7 +4,7 @@ The `functions-jira.sh` library provides reusable functions for interacting with
 
 ## Overview
 
-This library is used by both `jira-soother.sh` and `jira-create.sh` to eliminate code duplication and ensure consistent behavior across all Jira scripts.
+This library is used by `jira.sh` to provide consistent authentication, API interaction, validation, and error handling for all Jira operations.
 
 ### Key Features
 
@@ -566,6 +566,5 @@ This library requires:
 
 ## Related Documentation
 
-- **[jira-soother.sh](jira-soother.md)**: Script for updating existing tickets
-- **[jira-create.sh](jira-create.md)**: Script for creating new tickets
+- **[jira.sh](jira.md)**: Unified Jira automation script for all ticket operations
 - **`functions.sh`**: General-purpose shell functions (logging, validation)
