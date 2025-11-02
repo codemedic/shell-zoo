@@ -123,18 +123,28 @@ process_interactive_template() {
             local user_input
             user_input=$(prompt_user_input "${field_name}" "${prompt_text}" "${is_multiline}")
 
+            # Validate path contains only safe characters to prevent injection
+            if [[ ! "${path}" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+                log_error "Invalid field path detected: ${path}"
+                log_error "Paths must contain only alphanumeric characters, dots, hyphens, and underscores."
+                return 1
+            fi
+
             # Escape the input for JSON
             local escaped_input
             escaped_input=$(echo -n "${user_input}" | jq -R -s '.')
 
-            # Replace in JSON using jq
-            # Convert path like "fields.summary" to jq path like .fields.summary
-            local jq_path
-            jq_path=".${path}"
+            # Replace in JSON using jq with safe parameter passing
+            # Convert dot-separated path like "fields.summary" to array ["fields", "summary"]
+            local path_array
+            path_array=$(echo "${path}" | jq -R 'split(".")')
 
-            # Update the JSON
+            # Update the JSON using setpath() with safely passed arguments
             local updated_json
-            if ! updated_json=$(echo "${modified_json}" | jq "${jq_path} = ${escaped_input}"); then
+            if ! updated_json=$(echo "${modified_json}" | jq \
+                --argjson path "${path_array}" \
+                --argjson value "${escaped_input}" \
+                'setpath($path; $value)'); then
                 log_error "Failed to update field '${field_name}' in template."
                 return 1
             fi
@@ -157,14 +167,6 @@ validate_jira_env() {
 }
 
 # --- Authentication ---
-
-# Create Basic Auth header for Jira API
-# Returns: Authorization header string
-get_jira_auth_header() {
-    local auth_string
-    auth_string=$(echo -n "${jira_user}:${jira_password}" | base64)
-    echo "Authorization: Basic ${auth_string}"
-}
 
 # --- HTTP Response Handling ---
 
@@ -327,12 +329,9 @@ jira_api_get() {
 
     log_debug "GET ${url}"
 
-    local auth_header
-    auth_header=$(get_jira_auth_header)
-
     local response
     response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
-        -H "${auth_header}" \
+        -u "${jira_user}:${jira_password}" \
         -H "Accept: application/json" \
         "${url}")
 
@@ -362,13 +361,10 @@ jira_api_post() {
     log_debug "POST ${url}"
     log_debug "Payload: ${payload}"
 
-    local auth_header
-    auth_header=$(get_jira_auth_header)
-
     local response
     response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
         -X POST \
-        -H "${auth_header}" \
+        -u "${jira_user}:${jira_password}" \
         -H "Content-Type: application/json" \
         -H "Accept: application/json" \
         --data "${payload}" \
@@ -400,13 +396,10 @@ jira_api_put() {
     log_debug "PUT ${url}"
     log_debug "Payload: ${payload}"
 
-    local auth_header
-    auth_header=$(get_jira_auth_header)
-
     local response
     response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
         -X PUT \
-        -H "${auth_header}" \
+        -u "${jira_user}:${jira_password}" \
         -H "Content-Type: application/json" \
         -H "Accept: application/json" \
         --data "${payload}" \
