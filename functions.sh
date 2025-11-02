@@ -72,50 +72,56 @@ declare -A LOG_LEVELS=(
     ["DEBUG"]=0
     ["VERBOSE"]=1
     ["INFO"]=2
-    ["ERROR"]=3
+    ["WARNING"]=3
+    ["ERROR"]=4
 )
 # Logging level threshold
 LOG_LEVEL="${LOG_LEVEL:-INFO}"
 # Logging colours for each level
-declare -A LOG_COLORS=(
-    ["DEBUG"]="${DARK_GRAY}"
-    ["VERBOSE"]="${CYAN}"
-    ["INFO"]="${GREEN}"
-    ["WARNING"]="${YELLOW}"
-    ["ERROR"]="${RED}"
+readonly LOG_COLORS=(
+    "${DARK_GRAY}" # DEBUG   = 0
+    "${CYAN}"      # VERBOSE = 1
+    "${GREEN}"     # INFO    = 2
+    "${YELLOW}"    # WARNING = 3
+    "${RED}"       # ERROR   = 4
+)
+# Log line prefixes by level
+readonly LOG_PREFIXES=(
+    DBG # DEBUG   = 0
+    VRB # VERBOSE = 1
+    INF # INFO    = 2
+    WRN # WARNING = 3
+    ERR # ERROR   = 4
 )
 
-function log_debug() {
-    local int_level=${LOG_LEVELS[${LOG_LEVEL}]:-2}
-    if [[ ${int_level} -le ${LOG_LEVELS["DEBUG"]} ]]; then
-        echo -e "${LOG_COLORS["DEBUG"]}[DEBUG]${NC} $1" >&2
+log() {
+    local this_level="${LOG_LEVELS[$1]:-2}"
+    shift
+
+    local level_threshold="${LOG_LEVELS[${LOG_LEVEL:-INFO}]:-2}"
+    if (( this_level < level_threshold )); then
+        return
     fi
+
+    echo -e "${LOG_COLORS[$this_level]}${LOG_PREFIXES[$this_level]}${NC} $*" >&2
+}
+
+function log_debug() {
+    log DEBUG "$@"
 }
 
 function log_verbose() {
-    local int_level=${LOG_LEVELS[${LOG_LEVEL}]:-2}
-    if [[ ${int_level} -le ${LOG_LEVELS["VERBOSE"]} ]]; then
-        echo -e "${LOG_COLORS["VERBOSE"]}[VERBOSE]${NC} $1" >&2
-    fi
+    log VERBOSE "$@"
 }
 
 function log_info() {
-    local int_level=${LOG_LEVELS[${LOG_LEVEL}]:-2}
-    if [[ ${int_level} -le ${LOG_LEVELS["INFO"]} ]]; then
-        echo -e "${LOG_COLORS["INFO"]}[INFO]${NC} $1" >&2
-    fi
+    log INFO "$@"
 }
 
 function log_warning() {
-    local int_level=${LOG_LEVELS[${LOG_LEVEL}]:-2}
-    if [[ ${int_level} -le ${LOG_LEVELS["WARNING"]} ]]; then
-        echo -e "${LOG_COLORS["WARNING"]}[WARNING]${NC} $1" >&2
-    fi
+    log WARNING "$@"
 }
 
 function log_error() {
-    local int_level=${LOG_LEVELS[${LOG_LEVEL}]:-2}
-    if [[ ${int_level} -le ${LOG_LEVELS["ERROR"]} ]]; then
-        echo -e "${LOG_COLORS["ERROR"]}[ERROR]${NC} $1" >&2
-    fi
+    log ERROR "$@"
 }
