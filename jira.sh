@@ -1,8 +1,15 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 # --- jira.sh ---
 # Unified script for Jira ticket operations, field discovery, and template management.
+#
+# Requirements:
+#   - Bash 4.0+ (for modern bash features)
+#   - curl: For Jira API requests
+#   - jq: For JSON processing
+#   - yq: For YAML template processing
+#   - base64: For credential encoding (provided by coreutils)
 #
 # Usage:
 #   ./jira.sh [--debug|--verbose|--quiet] <command> [options]

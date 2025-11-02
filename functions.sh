@@ -1,6 +1,36 @@
 #!/usr/bin/env bash
 
-# Reusable functions for shell scripts
+# functions.sh - Reusable utility functions for shell scripts
+# -----------------------------------------------------------------------------
+# Description:
+#   Common utility functions including dependency validation and leveled
+#   logging (DEBUG, VERBOSE, INFO, WARNING, ERROR) with color support.
+#   This library is sourced by other scripts to provide consistent logging
+#   and validation capabilities.
+#
+# Requirements:
+#   - Bash 4.0+
+#
+# Usage:
+#   source "$(dirname "$0")/functions.sh"
+#   validate_dependencies "jq" "curl"
+#   log_info "Starting process..."
+#
+# Functions:
+#   - validate_dependencies: Check for required external commands
+#   - log_debug: Debug-level logging (when LOG_LEVEL=DEBUG)
+#   - log_verbose: Verbose logging (when LOG_LEVEL=DEBUG or VERBOSE)
+#   - log_info: Informational logging (default level)
+#   - log_warning: Warning messages
+#   - log_error: Error messages (always shown)
+#
+# Environment Variables:
+#   LOG_LEVEL: Set logging verbosity (DEBUG|VERBOSE|INFO|ERROR, default: INFO)
+#
+# Author: codemedic
+# Repository: https://github.com/codemedic/shell-zoo
+# Date: November 2025
+# -----------------------------------------------------------------------------
 
 # Validates that one or more external dependencies (commands) are available in the PATH.
 #

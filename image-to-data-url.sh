@@ -36,7 +36,7 @@
 #
 # Author: codemedic
 # Repository: https://github.com/codemedic/shell-zoo
-# Date: September 2025
+# Date: November 2025
 # -----------------------------------------------------------------------------
 
 set -euo pipefail

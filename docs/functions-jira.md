@@ -79,22 +79,25 @@ prompt_text=$(extract_prompt_text "{{PROMPT: Enter summary}}")
 # Output: "Enter summary"
 ```
 
-#### `prompt_user_input(field_name, prompt_text, field_type)`
+#### `prompt_user_input(field_name, prompt_text, is_multiline)`
 
 Prompt user for input interactively.
 
 **Parameters:**
-- `$1`: Field name (for display)
+- `$1`: Field name (for display purposes)
 - `$2`: Prompt text (question to ask)
-- `$3`: Field type (optional, default: "string"). Can be "array", "number", or other types
+- `$3`: Is multiline (optional, default: "false"). Use "true" for multi-line input
 
 **Returns:** User input from stdin
 
 **Usage:**
 ```bash
-user_input=$(prompt_user_input "summary" "Enter task summary" "string")
-# Displays: [INFO] Field: summary
-#            Enter task summary: [waits for input]
+# Single-line input
+user_input=$(prompt_user_input "summary" "Enter task summary" "false")
+
+# Multi-line input
+description=$(prompt_user_input "description" "Enter description" "true")
+# For multi-line, user types 'END' on a new line to finish
 ```
 
 #### `process_interactive_template(json, interactive)`
