@@ -1,0 +1,4 @@
+/jira-templates/
+/template-*.yaml
+/template-*.yml
+*.sh.bak
