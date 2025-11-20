@@ -2,3 +2,4 @@
 /template-*.yaml
 /template-*.yml
 *.sh.bak
+.idea/
